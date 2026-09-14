@@ -1,671 +1,666 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1976d2">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WaveTube — Paste a link, watch the video</title>
+<meta name="description" content="WaveTube is a simple, responsive player for YouTube links.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: dark;
+    --ink: #14171C;
+    --panel: #1B1F26;
+    --panel-raised: #21262E;
+    --line: #2B313B;
+    --text: #E7E9EC;
+    --muted: #8B93A1;
+    --accent: #F2B84B;
+    --accent-ink: #241A05;
+    --danger: #E8836B;
+    --ok: #7FD9A8;
+    --focus: #6FC4FF;
+    --radius: 10px;
+    --mono-tick: 3px;
+  }
 
-  <title>WaveTube Player</title>
+  html[data-theme="light"]{
+    color-scheme: light;
+    --ink: #F6F4EE;
+    --panel: #FFFFFF;
+    --panel-raised: #FBFAF6;
+    --line: #E1DDD1;
+    --text: #201C14;
+    --muted: #6B6459;
+    --accent: #B8791E;
+    --accent-ink: #FFF9EC;
+    --danger: #B4482F;
+    --ok: #2E7D53;
+    --focus: #1E6FA8;
+  }
 
-  <style>
-    :root {
-      --blue: #1976d2;
-      --dark-blue: #125ca3;
-      --background: #eef1f5;
-      --page: #f8f9fb;
-      --card: #ffffff;
-      --input: #ffffff;
-      --text: #252525;
-      --muted: #777777;
-      --border: #d5dbe2;
-      --soft-blue: #eaf3fc;
-      --shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
-    }
+  *{ box-sizing: border-box; }
+  html, body{ height: 100%; }
+  body{
+    margin: 0;
+    background: var(--ink);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.25s ease, color 0.25s ease;
+  }
 
-    body.dark-theme {
-      --background: #101318;
-      --page: #171b21;
-      --card: #20262d;
-      --input: #292f37;
-      --text: #f2f4f6;
-      --muted: #aeb6bf;
-      --border: #3c4651;
-      --soft-blue: #1b344e;
-      --shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-    }
+  a{ color: var(--focus); }
 
-    * {
-      box-sizing: border-box;
-    }
+  .skip-link{
+    position: absolute; left: -999px; top: 0;
+    background: var(--accent); color: var(--accent-ink);
+    padding: 10px 16px; border-radius: 0 0 8px 0; z-index: 100;
+    font-weight: 600; text-decoration: none;
+  }
+  .skip-link:focus{ left: 0; }
 
-    html,
-    body {
-      margin: 0;
-      min-height: 100%;
-      font-family: Arial, Helvetica, sans-serif;
-      color: var(--text);
-      background: var(--background);
-      transition:
-        background 0.25s ease,
-        color 0.25s ease;
-    }
+  :focus-visible{
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
 
-    body {
-      min-height: 100vh;
-    }
+  .shell{
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
 
-    button,
-    input {
-      font-family: inherit;
-    }
+  /* ---------- Header ---------- */
+  header.topbar{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
 
-    button {
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
+  .wordmark{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: -0.01em;
+  }
 
-    .app {
-      width: 100%;
-      max-width: 720px;
-      min-height: 100vh;
-      margin: 0 auto;
-      background: var(--page);
-      transition: background 0.25s ease;
-    }
+  .wordmark .bars{
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 18px;
+  }
+  .wordmark .bars i{
+    display: block;
+    width: 3px;
+    background: var(--accent);
+    border-radius: 2px;
+    animation: idlebar 2.6s ease-in-out infinite;
+  }
+  .wordmark .bars i:nth-child(1){ height: 6px; animation-delay: 0s; }
+  .wordmark .bars i:nth-child(2){ height: 16px; animation-delay: .2s; }
+  .wordmark .bars i:nth-child(3){ height: 10px; animation-delay: .4s; }
+  .wordmark .bars i:nth-child(4){ height: 14px; animation-delay: .6s; }
 
-    /* Top navigation bar */
-    .topbar {
-      min-height: 60px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 16px;
-      color: white;
-      background: linear-gradient(
-        135deg,
-        var(--blue),
-        var(--dark-blue)
-      );
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-    }
+  @keyframes idlebar{
+    0%, 100% { transform: scaleY(0.6); }
+    50% { transform: scaleY(1); }
+  }
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+  .theme-toggle{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 6px;
+    cursor: pointer;
+    color: var(--text);
+  }
+  .theme-toggle .track{
+    width: 38px; height: 20px;
+    border-radius: 999px;
+    background: var(--line);
+    position: relative;
+    transition: background .2s ease;
+  }
+  .theme-toggle .knob{
+    position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    transition: transform .2s ease;
+  }
+  html[data-theme="light"] .theme-toggle .knob{ transform: translateX(18px); }
+  .theme-toggle span.label{ font-size: 0.8rem; color: var(--muted); padding-right: 4px; }
 
-    .brand-icon {
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      color: var(--blue);
-      background: #ffffff;
-      font-size: 14px;
-      font-weight: bold;
-    }
+  p.lede{
+    color: var(--muted);
+    font-size: 0.98rem;
+    line-height: 1.5;
+    margin: 0 0 24px;
+    max-width: 62ch;
+  }
 
-    .brand-title {
-      font-size: 20px;
-      font-weight: normal;
-      letter-spacing: 0.2px;
-    }
+  /* ---------- Input row ---------- */
+  .input-row{
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
 
-    .topbar-actions {
-      display: flex;
-      align-items: center;
-      gap: 13px;
-    }
+  label.field-label{
+    display: block;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
 
-    .ready-label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-    }
+  input#urlInput{
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 0.96rem;
+    font-family: inherit;
+    min-width: 0;
+  }
+  input#urlInput::placeholder{ color: var(--muted); }
+  input#urlInput:focus{
+    border-color: var(--focus);
+  }
 
-    .ready-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #a9f0bd;
-    }
+  button{
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 12px 18px;
+    transition: transform .08s ease, background .15s ease, border-color .15s ease;
+  }
+  button:active{ transform: translateY(1px); }
 
-    .theme-button {
-      width: 35px;
-      height: 35px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      border-radius: 50%;
-      color: white;
-      background: rgba(255, 255, 255, 0.15);
-      font-size: 17px;
-      line-height: 1;
-    }
+  button.primary{
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  button.primary:hover{ filter: brightness(1.06); }
+  button.primary:disabled{
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: none;
+  }
 
-    .theme-button:hover {
-      background: rgba(255, 255, 255, 0.28);
-    }
+  button.ghost{
+    background: transparent;
+    border-color: var(--line);
+    color: var(--text);
+  }
+  button.ghost:hover{ border-color: var(--muted); }
 
-    .theme-button:active {
-      transform: scale(0.94);
-    }
+  .error-text{
+    color: var(--danger);
+    font-size: 0.85rem;
+    min-height: 1.2em;
+    margin: 4px 0 20px;
+  }
 
-    /* Main content */
-    .content {
-      padding: 16px;
-    }
+  /* ---------- Player card ---------- */
+  .player-card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+  }
 
-    .welcome {
-      margin-bottom: 15px;
-    }
+  .status-strip{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel-raised);
+  }
 
-    .welcome h1 {
-      margin: 0 0 6px;
-      color: var(--text);
-      font-size: 25px;
-      font-weight: normal;
-    }
+  .status-dot{
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+    transition: background .2s ease;
+  }
+  .status-dot.state-ready{ background: var(--muted); }
+  .status-dot.state-loading, .status-dot.state-buffering{ background: var(--accent); animation: pulse 1.1s ease-in-out infinite; }
+  .status-dot.state-playing{ background: var(--ok); }
+  .status-dot.state-paused{ background: var(--focus); }
+  .status-dot.state-finished{ background: var(--ok); }
+  .status-dot.state-unavailable{ background: var(--danger); }
 
-    .welcome p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.5;
-    }
+  @keyframes pulse{
+    0%, 100%{ opacity: 1; }
+    50%{ opacity: 0.35; }
+  }
 
-    .player-card {
-      padding: 16px;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      background: var(--card);
-      box-shadow: var(--shadow);
-      transition:
-        background 0.25s ease,
-        border 0.25s ease,
-        box-shadow 0.25s ease;
-    }
+  #statusText{
+    font-size: 0.86rem;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 500;
+  }
 
-    /* Input area */
-    .input-label {
-      display: block;
-      margin-bottom: 7px;
-      color: var(--muted);
-      font-size: 13px;
-    }
+  .eq{
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 14px;
+    margin-left: auto;
+    opacity: 0.9;
+  }
+  .eq i{
+    width: 3px;
+    background: var(--accent);
+    border-radius: 1px;
+    height: 4px;
+    transform-origin: bottom;
+  }
+  .eq.playing i{ animation: eqbounce 0.9s ease-in-out infinite; }
+  .eq.playing i:nth-child(1){ animation-delay: 0s; }
+  .eq.playing i:nth-child(2){ animation-delay: .15s; }
+  .eq.playing i:nth-child(3){ animation-delay: .3s; }
+  .eq.playing i:nth-child(4){ animation-delay: .1s; }
+  .eq.playing i:nth-child(5){ animation-delay: .25s; }
 
-    .input-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
+  @keyframes eqbounce{
+    0%, 100%{ height: 4px; }
+    50%{ height: 14px; }
+  }
 
-    #youtubeUrl {
-      width: 100%;
-      min-width: 0;
-      height: 46px;
-      padding: 0 13px;
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      outline: none;
-      color: var(--text);
-      background: var(--input);
-      font-size: 15px;
-      transition:
-        background 0.25s ease,
-        color 0.25s ease,
-        border 0.2s ease;
-    }
+  .frame-wrap{
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+  }
 
-    #youtubeUrl::placeholder {
-      color: var(--muted);
-    }
+  .frame-wrap iframe, .frame-wrap .empty-state{
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
 
-    #youtubeUrl:focus {
-      border-color: var(--blue);
-      box-shadow: 0 0 0 1px var(--blue);
-    }
+  .empty-state{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--muted);
+    text-align: center;
+    padding: 24px;
+  }
 
-    #loadButton {
-      min-width: 82px;
-      height: 46px;
-      padding: 0 17px;
-      border: 0;
-      border-radius: 3px;
-      color: white;
-      background: var(--blue);
-      font-size: 15px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
-    }
+  .empty-state .bars{
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 30px;
+  }
+  .empty-state .bars i{
+    width: 4px;
+    background: var(--line);
+    border-radius: 2px;
+  }
+  .empty-state .bars i:nth-child(1){ height: 10px; }
+  .empty-state .bars i:nth-child(2){ height: 24px; }
+  .empty-state .bars i:nth-child(3){ height: 16px; }
+  .empty-state .bars i:nth-child(4){ height: 28px; }
+  .empty-state .bars i:nth-child(5){ height: 12px; }
 
-    #loadButton:hover {
-      background: var(--dark-blue);
-    }
+  .empty-state p{ margin: 0; font-size: 0.9rem; max-width: 34ch; }
 
-    #loadButton:active {
-      transform: scale(0.98);
-    }
+  .player-footer{
+    padding: 14px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
 
-    #loadButton:disabled {
-      cursor: not-allowed;
-      opacity: 0.65;
-    }
+  .notice{
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--muted);
+    background: var(--panel-raised);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .notice strong{ color: var(--text); }
 
-    /* Video area */
-    .video-container {
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      overflow: hidden;
-      border: 1px solid #9da6b0;
-      border-radius: 3px;
-      background: #000000;
-    }
+  footer.pagefoot{
+    margin-top: 26px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    text-align: center;
+  }
 
-    #player {
-      width: 100%;
-      height: 100%;
-    }
+  .sr-only{
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
 
-    #player iframe {
-      width: 100%;
-      height: 100%;
-      border: 0;
-    }
+  @media (max-width: 520px){
+    .input-row{ flex-direction: column; }
+    .input-row button{ width: 100%; }
+    .shell{ padding: 20px 16px 44px; }
+  }
 
-    /* Status and clear button */
-    .control-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-top: 13px;
-    }
-
-    #status {
-      margin: 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.4;
-    }
-
-    #clearButton {
-      flex-shrink: 0;
-      padding: 8px 13px;
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      color: var(--muted);
-      background: var(--card);
-      font-size: 13px;
-    }
-
-    #clearButton:hover {
-      color: var(--blue);
-      border-color: var(--blue);
-    }
-
-    /* Information box */
-    .info-box {
-      display: flex;
-      gap: 9px;
-      margin-top: 16px;
-      padding: 12px;
-      border-left: 3px solid var(--blue);
-      color: var(--muted);
-      background: var(--soft-blue);
-      font-size: 12px;
-      line-height: 1.55;
-      transition:
-        background 0.25s ease,
-        color 0.25s ease;
-    }
-
-    .info-icon {
-      color: var(--blue);
-      font-weight: bold;
-    }
-
-    .footer {
-      padding: 18px 16px;
-      color: var(--muted);
-      text-align: center;
-      font-size: 12px;
-    }
-
-    /* Small screen layout for Samsung Galaxy J5 */
-    @media (max-width: 480px) {
-      .topbar {
-        min-height: 56px;
-        padding: 9px 13px;
-      }
-
-      .brand-title {
-        font-size: 18px;
-      }
-
-      .ready-label {
-        display: none;
-      }
-
-      .content {
-        padding: 11px;
-      }
-
-      .player-card {
-        padding: 13px;
-      }
-
-      .welcome h1 {
-        font-size: 23px;
-      }
-
-      .input-row {
-        flex-direction: column;
-      }
-
-      #loadButton {
-        width: 100%;
-      }
-
-      .control-row {
-        align-items: flex-start;
-      }
-    }
-  </style>
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+  }
+</style>
 </head>
-
 <body>
-  <div class="app">
 
-    <header class="topbar">
-      <div class="brand">
-        <div class="brand-icon">▶</div>
-        <div class="brand-title">WaveTube</div>
-      </div>
+<a class="skip-link" href="#urlInput">Skip to URL field</a>
 
-      <div class="topbar-actions">
-        <div class="ready-label">
-          <span class="ready-dot"></span>
-          Ready
-        </div>
+<div class="shell">
 
-        <button
-          id="themeButton"
-          class="theme-button"
-          type="button"
-          aria-label="Switch to dark theme"
-          title="Change theme"
-        >
-          🌙
-        </button>
-      </div>
-    </header>
+  <header class="topbar">
+    <div class="wordmark">
+      <span class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      WaveTube
+    </div>
 
-    <main class="content">
+    <button type="button" class="theme-toggle" id="themeToggle" aria-pressed="false">
+      <span class="label" id="themeLabel">Dark</span>
+      <span class="track"><span class="knob"></span></span>
+      <span class="sr-only">Toggle light and dark theme</span>
+    </button>
+  </header>
 
-      <section class="welcome">
-        <h1>Play your video</h1>
-        <p>Paste a YouTube link below to start watching.</p>
-      </section>
+  <p class="lede">Paste a YouTube link below to load the video. Standard links, youtu.be links, Shorts, and embed links all work.</p>
 
-      <section class="player-card">
-
-        <label class="input-label" for="youtubeUrl">
-          YouTube video link
-        </label>
-
-        <div class="input-row">
-          <input
-            id="youtubeUrl"
-            type="url"
-            placeholder="https://youtube.com/watch?v=..."
-            autocomplete="off"
-            spellcheck="false"
-          >
-
-          <button id="loadButton" type="button" disabled>
-            Play
-          </button>
-        </div>
-
-        <div class="video-container">
-          <div id="player"></div>
-        </div>
-
-        <div class="control-row">
-          <p id="status">Loading player...</p>
-
-          <button id="clearButton" type="button">
-            Clear
-          </button>
-        </div>
-
-        <div class="info-box">
-          <div class="info-icon">i</div>
-
-          <div>
-            Tap Play inside the video after loading. Screen-off playback
-            depends on your browser, phone, and YouTube restrictions.
-          </div>
-        </div>
-
-      </section>
-    </main>
-
-    <footer class="footer">
-      WaveTube · Simple YouTube player
-    </footer>
+  <label class="field-label" for="urlInput">YouTube URL</label>
+  <div class="input-row">
+    <input
+      type="text"
+      id="urlInput"
+      inputmode="url"
+      autocomplete="off"
+      spellcheck="false"
+      placeholder="https://www.youtube.com/watch?v=..."
+      aria-describedby="urlError"
+    >
+    <button type="button" class="primary" id="loadBtn">Load video</button>
+    <button type="button" class="ghost" id="clearBtn">Clear</button>
   </div>
+  <p class="error-text" id="urlError" role="alert"></p>
 
-  <script>
-    let player = null;
-    let youtubeApiReady = false;
+  <section class="player-card" aria-label="Video player">
+    <div class="status-strip">
+      <span class="status-dot state-ready" id="statusDot" aria-hidden="true"></span>
+      <span id="statusText" role="status" aria-live="polite">No video loaded.</span>
+      <span class="eq" id="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+    </div>
 
-    const input = document.getElementById("youtubeUrl");
-    const loadButton = document.getElementById("loadButton");
-    const clearButton = document.getElementById("clearButton");
-    const statusText = document.getElementById("status");
-    const themeButton = document.getElementById("themeButton");
+    <div class="frame-wrap" id="frameWrap">
+      <div class="empty-state" id="emptyState">
+        <span class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+        <p>Paste a link above and press Load video, or hit Enter, to bring a video in here.</p>
+      </div>
+      <div id="player"></div>
+    </div>
 
-    /*
-      Theme controls
-    */
-    function applyTheme(theme) {
-      if (theme === "dark") {
-        document.body.classList.add("dark-theme");
-        themeButton.textContent = "☀️";
-        themeButton.setAttribute(
-          "aria-label",
-          "Switch to light theme"
-        );
-        themeButton.setAttribute(
-          "title",
-          "Switch to light theme"
-        );
-      } else {
-        document.body.classList.remove("dark-theme");
-        themeButton.textContent = "🌙";
-        themeButton.setAttribute(
-          "aria-label",
-          "Switch to dark theme"
-        );
-        themeButton.setAttribute(
-          "title",
-          "Switch to dark theme"
-        );
-      }
+    <div class="player-footer">
+      <p class="notice">
+        <strong>Tap Play inside the video after loading.</strong>
+        Background playback may be paused when you leave the browser, depending on your device, browser, and YouTube restrictions.
+      </p>
+    </div>
+  </section>
 
-      localStorage.setItem("wavetube-theme", theme);
-    }
+  <footer class="pagefoot">
+    WaveTube plays video through the official YouTube IFrame Player API.
+  </footer>
 
-    const savedTheme = localStorage.getItem("wavetube-theme");
+</div>
 
-    if (savedTheme === "dark") {
-      applyTheme("dark");
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+(function(){
+  "use strict";
+
+  var urlInput   = document.getElementById('urlInput');
+  var loadBtn    = document.getElementById('loadBtn');
+  var clearBtn   = document.getElementById('clearBtn');
+  var urlError   = document.getElementById('urlError');
+  var statusText = document.getElementById('statusText');
+  var statusDot  = document.getElementById('statusDot');
+  var eq         = document.getElementById('eq');
+  var emptyState = document.getElementById('emptyState');
+  var themeToggle= document.getElementById('themeToggle');
+  var themeLabel = document.getElementById('themeLabel');
+
+  var player = null;
+  var apiReady = false;
+  var pendingVideoId = null;
+
+  /* ---------------- Theme ---------------- */
+  function applyTheme(theme){
+    document.documentElement.setAttribute('data-theme', theme);
+    themeToggle.setAttribute('aria-pressed', theme === 'light' ? 'true' : 'false');
+    themeLabel.textContent = theme === 'light' ? 'Light' : 'Dark';
+  }
+
+  function initTheme(){
+    var saved = null;
+    try { saved = localStorage.getItem('wavetube-theme'); } catch (e) { /* storage unavailable */ }
+    if (saved === 'light' || saved === 'dark'){
+      applyTheme(saved);
     } else {
-      applyTheme("light");
+      var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      applyTheme(prefersLight ? 'light' : 'dark');
     }
+  }
 
-    themeButton.addEventListener("click", function() {
-      const darkModeEnabled =
-        document.body.classList.contains("dark-theme");
+  themeToggle.addEventListener('click', function(){
+    var current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    var next = current === 'light' ? 'dark' : 'light';
+    applyTheme(next);
+    try { localStorage.setItem('wavetube-theme', next); } catch (e) { /* storage unavailable */ }
+  });
 
-      applyTheme(darkModeEnabled ? "light" : "dark");
-    });
+  initTheme();
 
-    /*
-      Player controls
-    */
-    function setStatus(message) {
-      statusText.textContent = message;
+  /* ---------------- Status display ---------------- */
+  var STATES = {
+    idle:        { text: 'No video loaded.',                         cls: 'state-ready' },
+    loading:     { text: 'Loading video…',                           cls: 'state-loading' },
+    ready:       { text: 'Ready. Tap play inside the video.',        cls: 'state-ready' },
+    playing:     { text: 'Playing.',                                 cls: 'state-playing' },
+    paused:      { text: 'Paused.',                                  cls: 'state-paused' },
+    buffering:   { text: 'Buffering…',                               cls: 'state-buffering' },
+    finished:    { text: 'Finished.',                                cls: 'state-finished' },
+    unavailable: { text: 'This video is unavailable.',               cls: 'state-unavailable' }
+  };
+
+  function setStatus(stateKeyOrText, cls){
+    var text = stateKeyOrText;
+    var dotClass = cls;
+    if (STATES[stateKeyOrText]){
+      text = STATES[stateKeyOrText].text;
+      dotClass = STATES[stateKeyOrText].cls;
     }
+    statusText.textContent = text;
+    statusDot.className = 'status-dot ' + (dotClass || 'state-ready');
+    eq.classList.toggle('playing', dotClass === 'state-playing');
+  }
 
-    function extractVideoId(value) {
-      value = value.trim();
+  /* ---------------- URL parsing ---------------- */
+  function extractVideoId(raw){
+    if (!raw) return null;
+    var input = raw.trim();
+    if (!input) return null;
 
-      if (!value) {
-        return null;
-      }
+    // Allow bare 11-char IDs typed directly.
+    if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
 
-      try {
-        const url = new URL(value);
-        const host = url.hostname
-          .toLowerCase()
-          .replace(/^www\./, "");
-
-        // Example:
-        // https://youtu.be/VIDEO_ID
-        if (host === "youtu.be") {
-          return url.pathname.substring(1).split("/")[0];
-        }
-
-        if (
-          host === "youtube.com" ||
-          host === "m.youtube.com" ||
-          host === "youtube-nocookie.com"
-        ) {
-          // Example:
-          // https://youtube.com/watch?v=VIDEO_ID
-          if (url.pathname === "/watch") {
-            return url.searchParams.get("v");
-          }
-
-          // Example:
-          // https://youtube.com/shorts/VIDEO_ID
-          if (url.pathname.startsWith("/shorts/")) {
-            return url.pathname.split("/")[2];
-          }
-
-          // Example:
-          // https://youtube.com/embed/VIDEO_ID
-          if (url.pathname.startsWith("/embed/")) {
-            return url.pathname.split("/")[2];
-          }
-        }
-      } catch (error) {
-        return null;
-      }
-
+    var url;
+    try {
+      url = new URL(input.indexOf('http') === 0 ? input : 'https://' + input);
+    } catch (e) {
       return null;
     }
 
-    function loadVideo() {
-      if (!youtubeApiReady) {
-        setStatus("Player is still loading...");
-        return;
+    var host = url.hostname.replace(/^www\./, '').replace(/^m\./, '');
+    var idPattern = /^[a-zA-Z0-9_-]{11}$/;
+
+    if (host === 'youtu.be'){
+      var seg = url.pathname.split('/').filter(Boolean)[0];
+      return (seg && idPattern.test(seg)) ? seg : null;
+    }
+
+    if (host === 'youtube.com' || host === 'youtube-nocookie.com'){
+      if (url.searchParams.get('v') && idPattern.test(url.searchParams.get('v'))){
+        return url.searchParams.get('v');
       }
-
-      const videoId = extractVideoId(input.value);
-
-      if (!videoId || videoId.length !== 11) {
-        setStatus("Please enter a valid YouTube link.");
-        return;
+      var parts = url.pathname.split('/').filter(Boolean);
+      // /shorts/ID  /embed/ID  /live/ID  /v/ID
+      if (parts.length >= 2 && ['shorts', 'embed', 'live', 'v'].indexOf(parts[0]) !== -1){
+        return idPattern.test(parts[1]) ? parts[1] : null;
       }
+    }
 
-      setStatus("Loading video...");
+    return null;
+  }
 
-      if (player) {
-        player.loadVideoById(videoId);
-        return;
-      }
+  /* ---------------- YouTube IFrame API ---------------- */
+  window.onYouTubeIframeAPIReady = function(){
+    apiReady = true;
+    if (pendingVideoId){
+      createPlayer(pendingVideoId);
+      pendingVideoId = null;
+    }
+  };
 
-      player = new YT.Player("player", {
-        videoId: videoId,
+  function createPlayer(videoId){
+    emptyState.style.display = 'none';
+    setStatus('loading');
 
-        playerVars: {
-          playsinline: 1,
-          rel: 0,
-          modestbranding: 1
+    if (player && typeof player.loadVideoById === 'function'){
+      player.loadVideoById(videoId);
+      return;
+    }
+
+    player = new YT.Player('player', {
+      videoId: videoId,
+      playerVars: {
+        playsinline: 1,
+        rel: 0,
+        modestbranding: 1
+      },
+      events: {
+        onReady: function(){
+          setStatus('Ready. Tap play inside the video.', 'state-ready');
         },
-
-        events: {
-          onReady: function(event) {
-            setStatus("Ready. Tap play inside the video.");
-            event.target.playVideo();
-          },
-
-          onStateChange: function(event) {
-            if (event.data === YT.PlayerState.PLAYING) {
-              setStatus("Now playing");
-            }
-
-            if (event.data === YT.PlayerState.PAUSED) {
-              setStatus("Paused");
-            }
-
-            if (event.data === YT.PlayerState.BUFFERING) {
-              setStatus("Buffering...");
-            }
-
-            if (event.data === YT.PlayerState.ENDED) {
-              setStatus("Video finished");
-            }
-          },
-
-          onError: function() {
-            setStatus("This video cannot be played here.");
+        onStateChange: function(event){
+          switch (event.data){
+            case YT.PlayerState.PLAYING:
+              setStatus('playing');
+              break;
+            case YT.PlayerState.PAUSED:
+              setStatus('paused');
+              break;
+            case YT.PlayerState.BUFFERING:
+              setStatus('buffering');
+              break;
+            case YT.PlayerState.ENDED:
+              setStatus('finished');
+              break;
+            case YT.PlayerState.CUED:
+              setStatus('Ready. Tap play inside the video.', 'state-ready');
+              break;
           }
+        },
+        onError: function(){
+          setStatus('unavailable');
         }
-      });
-    }
-
-    function clearPlayer() {
-      input.value = "";
-      setStatus("Ready for a video.");
-
-      if (player) {
-        player.stopVideo();
-        player.clearVideo();
-      }
-    }
-
-    loadButton.addEventListener("click", loadVideo);
-    clearButton.addEventListener("click", clearPlayer);
-
-    input.addEventListener("keydown", function(event) {
-      if (event.key === "Enter") {
-        loadVideo();
       }
     });
+  }
 
-    /*
-      This function is called by the YouTube IFrame API
-      after it has finished loading.
-    */
-    function onYouTubeIframeAPIReady() {
-      youtubeApiReady = true;
-      loadButton.disabled = false;
-      setStatus("Ready for a video.");
+  function loadFromInput(){
+    var raw = urlInput.value;
+    var videoId = extractVideoId(raw);
+
+    if (!videoId){
+      urlError.textContent = raw.trim()
+        ? 'That doesn\u2019t look like a YouTube link. Try a standard, youtu.be, Shorts, or embed link.'
+        : 'Paste a YouTube link first.';
+      urlInput.focus();
+      return;
     }
 
-    const youtubeScript = document.createElement("script");
-    youtubeScript.src = "https://www.youtube.com/iframe_api";
-    document.head.appendChild(youtubeScript);
-  </script>
+    urlError.textContent = '';
+
+    if (apiReady){
+      createPlayer(videoId);
+    } else {
+      pendingVideoId = videoId;
+      setStatus('loading');
+    }
+  }
+
+  function clearPlayer(){
+    if (player && typeof player.stopVideo === 'function'){
+      try { player.destroy(); } catch (e) { /* ignore */ }
+    }
+    player = null;
+    pendingVideoId = null;
+    urlInput.value = '';
+    urlError.textContent = '';
+    var playerDiv = document.getElementById('player');
+    if (playerDiv) playerDiv.innerHTML = '';
+    var fresh = document.createElement('div');
+    fresh.id = 'player';
+    document.getElementById('frameWrap').appendChild(fresh);
+    emptyState.style.display = 'flex';
+    setStatus('idle');
+    urlInput.focus();
+  }
+
+  loadBtn.addEventListener('click', loadFromInput);
+  clearBtn.addEventListener('click', clearPlayer);
+
+  urlInput.addEventListener('keydown', function(e){
+    if (e.key === 'Enter'){
+      e.preventDefault();
+      loadFromInput();
+    }
+  });
+
+  setStatus('idle');
+})();
+</script>
+
 </body>
 </html>
