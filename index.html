@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1976d2">
+
+  <title>WaveTube Player</title>
+
+  <style>
+    :root {
+      --blue: #1976d2;
+      --dark-blue: #125ca3;
+      --background: #eef1f5;
+      --page: #f8f9fb;
+      --card: #ffffff;
+      --input: #ffffff;
+      --text: #252525;
+      --muted: #777777;
+      --border: #d5dbe2;
+      --soft-blue: #eaf3fc;
+      --shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+    }
+
+    body.dark-theme {
+      --background: #101318;
+      --page: #171b21;
+      --card: #20262d;
+      --input: #292f37;
+      --text: #f2f4f6;
+      --muted: #aeb6bf;
+      --border: #3c4651;
+      --soft-blue: #1b344e;
+      --shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background: var(--background);
+      transition:
+        background 0.25s ease,
+        color 0.25s ease;
+    }
+
+    body {
+      min-height: 100vh;
+    }
+
+    button,
+    input {
+      font-family: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 720px;
+      min-height: 100vh;
+      margin: 0 auto;
+      background: var(--page);
+      transition: background 0.25s ease;
+    }
+
+    /* Top navigation bar */
+    .topbar {
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      color: white;
+      background: linear-gradient(
+        135deg,
+        var(--blue),
+        var(--dark-blue)
+      );
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: var(--blue);
+      background: #ffffff;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: normal;
+      letter-spacing: 0.2px;
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+    }
+
+    .ready-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+
+    .ready-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #a9f0bd;
+    }
+
+    .theme-button {
+      width: 35px;
+      height: 35px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 50%;
+      color: white;
+      background: rgba(255, 255, 255, 0.15);
+      font-size: 17px;
+      line-height: 1;
+    }
+
+    .theme-button:hover {
+      background: rgba(255, 255, 255, 0.28);
+    }
+
+    .theme-button:active {
+      transform: scale(0.94);
+    }
+
+    /* Main content */
+    .content {
+      padding: 16px;
+    }
+
+    .welcome {
+      margin-bottom: 15px;
+    }
+
+    .welcome h1 {
+      margin: 0 0 6px;
+      color: var(--text);
+      font-size: 25px;
+      font-weight: normal;
+    }
+
+    .welcome p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .player-card {
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+      transition:
+        background 0.25s ease,
+        border 0.25s ease,
+        box-shadow 0.25s ease;
+    }
+
+    /* Input area */
+    .input-label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    #youtubeUrl {
+      width: 100%;
+      min-width: 0;
+      height: 46px;
+      padding: 0 13px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      outline: none;
+      color: var(--text);
+      background: var(--input);
+      font-size: 15px;
+      transition:
+        background 0.25s ease,
+        color 0.25s ease,
+        border 0.2s ease;
+    }
+
+    #youtubeUrl::placeholder {
+      color: var(--muted);
+    }
+
+    #youtubeUrl:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 1px var(--blue);
+    }
+
+    #loadButton {
+      min-width: 82px;
+      height: 46px;
+      padding: 0 17px;
+      border: 0;
+      border-radius: 3px;
+      color: white;
+      background: var(--blue);
+      font-size: 15px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+    }
+
+    #loadButton:hover {
+      background: var(--dark-blue);
+    }
+
+    #loadButton:active {
+      transform: scale(0.98);
+    }
+
+    #loadButton:disabled {
+      cursor: not-allowed;
+      opacity: 0.65;
+    }
+
+    /* Video area */
+    .video-container {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border: 1px solid #9da6b0;
+      border-radius: 3px;
+      background: #000000;
+    }
+
+    #player {
+      width: 100%;
+      height: 100%;
+    }
+
+    #player iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    /* Status and clear button */
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 13px;
+    }
+
+    #status {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    #clearButton {
+      flex-shrink: 0;
+      padding: 8px 13px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--muted);
+      background: var(--card);
+      font-size: 13px;
+    }
+
+    #clearButton:hover {
+      color: var(--blue);
+      border-color: var(--blue);
+    }
+
+    /* Information box */
+    .info-box {
+      display: flex;
+      gap: 9px;
+      margin-top: 16px;
+      padding: 12px;
+      border-left: 3px solid var(--blue);
+      color: var(--muted);
+      background: var(--soft-blue);
+      font-size: 12px;
+      line-height: 1.55;
+      transition:
+        background 0.25s ease,
+        color 0.25s ease;
+    }
+
+    .info-icon {
+      color: var(--blue);
+      font-weight: bold;
+    }
+
+    .footer {
+      padding: 18px 16px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 12px;
+    }
+
+    /* Small screen layout for Samsung Galaxy J5 */
+    @media (max-width: 480px) {
+      .topbar {
+        min-height: 56px;
+        padding: 9px 13px;
+      }
+
+      .brand-title {
+        font-size: 18px;
+      }
+
+      .ready-label {
+        display: none;
+      }
+
+      .content {
+        padding: 11px;
+      }
+
+      .player-card {
+        padding: 13px;
+      }
+
+      .welcome h1 {
+        font-size: 23px;
+      }
+
+      .input-row {
+        flex-direction: column;
+      }
+
+      #loadButton {
+        width: 100%;
+      }
+
+      .control-row {
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon">▶</div>
+        <div class="brand-title">WaveTube</div>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="ready-label">
+          <span class="ready-dot"></span>
+          Ready
+        </div>
+
+        <button
+          id="themeButton"
+          class="theme-button"
+          type="button"
+          aria-label="Switch to dark theme"
+          title="Change theme"
+        >
+          🌙
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <section class="welcome">
+        <h1>Play your video</h1>
+        <p>Paste a YouTube link below to start watching.</p>
+      </section>
+
+      <section class="player-card">
+
+        <label class="input-label" for="youtubeUrl">
+          YouTube video link
+        </label>
+
+        <div class="input-row">
+          <input
+            id="youtubeUrl"
+            type="url"
+            placeholder="https://youtube.com/watch?v=..."
+            autocomplete="off"
+            spellcheck="false"
+          >
+
+          <button id="loadButton" type="button" disabled>
+            Play
+          </button>
+        </div>
+
+        <div class="video-container">
+          <div id="player"></div>
+        </div>
+
+        <div class="control-row">
+          <p id="status">Loading player...</p>
+
+          <button id="clearButton" type="button">
+            Clear
+          </button>
+        </div>
+
+        <div class="info-box">
+          <div class="info-icon">i</div>
+
+          <div>
+            Tap Play inside the video after loading. Screen-off playback
+            depends on your browser, phone, and YouTube restrictions.
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+    <footer class="footer">
+      WaveTube · Simple YouTube player
+    </footer>
+  </div>
+
+  <script>
+    let player = null;
+    let youtubeApiReady = false;
+
+    const input = document.getElementById("youtubeUrl");
+    const loadButton = document.getElementById("loadButton");
+    const clearButton = document.getElementById("clearButton");
+    const statusText = document.getElementById("status");
+    const themeButton = document.getElementById("themeButton");
+
+    /*
+      Theme controls
+    */
+    function applyTheme(theme) {
+      if (theme === "dark") {
+        document.body.classList.add("dark-theme");
+        themeButton.textContent = "☀️";
+        themeButton.setAttribute(
+          "aria-label",
+          "Switch to light theme"
+        );
+        themeButton.setAttribute(
+          "title",
+          "Switch to light theme"
+        );
+      } else {
+        document.body.classList.remove("dark-theme");
+        themeButton.textContent = "🌙";
+        themeButton.setAttribute(
+          "aria-label",
+          "Switch to dark theme"
+        );
+        themeButton.setAttribute(
+          "title",
+          "Switch to dark theme"
+        );
+      }
+
+      localStorage.setItem("wavetube-theme", theme);
+    }
+
+    const savedTheme = localStorage.getItem("wavetube-theme");
+
+    if (savedTheme === "dark") {
+      applyTheme("dark");
+    } else {
+      applyTheme("light");
+    }
+
+    themeButton.addEventListener("click", function() {
+      const darkModeEnabled =
+        document.body.classList.contains("dark-theme");
+
+      applyTheme(darkModeEnabled ? "light" : "dark");
+    });
+
+    /*
+      Player controls
+    */
+    function setStatus(message) {
+      statusText.textContent = message;
+    }
+
+    function extractVideoId(value) {
+      value = value.trim();
+
+      if (!value) {
+        return null;
+      }
+
+      try {
+        const url = new URL(value);
+        const host = url.hostname
+          .toLowerCase()
+          .replace(/^www\./, "");
+
+        // Example:
+        // https://youtu.be/VIDEO_ID
+        if (host === "youtu.be") {
+          return url.pathname.substring(1).split("/")[0];
+        }
+
+        if (
+          host === "youtube.com" ||
+          host === "m.youtube.com" ||
+          host === "youtube-nocookie.com"
+        ) {
+          // Example:
+          // https://youtube.com/watch?v=VIDEO_ID
+          if (url.pathname === "/watch") {
+            return url.searchParams.get("v");
+          }
+
+          // Example:
+          // https://youtube.com/shorts/VIDEO_ID
+          if (url.pathname.startsWith("/shorts/")) {
+            return url.pathname.split("/")[2];
+          }
+
+          // Example:
+          // https://youtube.com/embed/VIDEO_ID
+          if (url.pathname.startsWith("/embed/")) {
+            return url.pathname.split("/")[2];
+          }
+        }
+      } catch (error) {
+        return null;
+      }
+
+      return null;
+    }
+
+    function loadVideo() {
+      if (!youtubeApiReady) {
+        setStatus("Player is still loading...");
+        return;
+      }
+
+      const videoId = extractVideoId(input.value);
+
+      if (!videoId || videoId.length !== 11) {
+        setStatus("Please enter a valid YouTube link.");
+        return;
+      }
+
+      setStatus("Loading video...");
+
+      if (player) {
+        player.loadVideoById(videoId);
+        return;
+      }
+
+      player = new YT.Player("player", {
+        videoId: videoId,
+
+        playerVars: {
+          playsinline: 1,
+          rel: 0,
+          modestbranding: 1
+        },
+
+        events: {
+          onReady: function(event) {
+            setStatus("Ready. Tap play inside the video.");
+            event.target.playVideo();
+          },
+
+          onStateChange: function(event) {
+            if (event.data === YT.PlayerState.PLAYING) {
+              setStatus("Now playing");
+            }
+
+            if (event.data === YT.PlayerState.PAUSED) {
+              setStatus("Paused");
+            }
+
+            if (event.data === YT.PlayerState.BUFFERING) {
+              setStatus("Buffering...");
+            }
+
+            if (event.data === YT.PlayerState.ENDED) {
+              setStatus("Video finished");
+            }
+          },
+
+          onError: function() {
+            setStatus("This video cannot be played here.");
+          }
+        }
+      });
+    }
+
+    function clearPlayer() {
+      input.value = "";
+      setStatus("Ready for a video.");
+
+      if (player) {
+        player.stopVideo();
+        player.clearVideo();
+      }
+    }
+
+    loadButton.addEventListener("click", loadVideo);
+    clearButton.addEventListener("click", clearPlayer);
+
+    input.addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        loadVideo();
+      }
+    });
+
+    /*
+      This function is called by the YouTube IFrame API
+      after it has finished loading.
+    */
+    function onYouTubeIframeAPIReady() {
+      youtubeApiReady = true;
+      loadButton.disabled = false;
+      setStatus("Ready for a video.");
+    }
+
+    const youtubeScript = document.createElement("script");
+    youtubeScript.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(youtubeScript);
+  </script>
+</body>
+</html>
